@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="docs/images/drone_model.png" alt="Drone X500" width="120"/>
 </p>
 
@@ -22,18 +22,18 @@
 
 ## Table of Contents
 
-- [Overview](#-overview)
-- [System Architecture](#-system-architecture)
-- [Key Features](#-key-features)
-- [Technology Stack](#-technology-stack)
-- [Detection — YOLOv8](#-detection--yolov8)
-- [Control — Multi-Axis PID](#-control--multi-axis-pid)
-- [Collision Avoidance — PPO Reinforcement Learning](#-collision-avoidance--ppo-reinforcement-learning)
-- [Simulation Environment](#-simulation-environment)
-- [HITL — Hardware-in-the-Loop with Jetson Nano](#-hitl--hardware-in-the-loop-with-jetson-nano)
-- [Results](#-results)
-- [Project Structure](#-project-structure)
-- [License](#-license)
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [Detection — YOLOv8](#detection--yolov8)
+- [Control — Multi-Axis PID](#control--multi-axis-pid)
+- [Collision Avoidance — PPO Reinforcement Learning](#collision-avoidance--ppo-reinforcement-learning)
+- [Simulation Environment](#simulation-environment)
+- [HITL — Hardware-in-the-Loop with Jetson Nano](#hitl--hardware-in-the-loop-with-jetson-nano)
+- [Results](#results)
+- [Project Structure](#project-structure)
+- [License](#license)
 
 ---
 
@@ -160,7 +160,7 @@ The tracking controller uses **4 independent PID controllers**, each with anti-w
 | **Yaw** | Face the target | Proportional dominant |
 | **Tangential** | Maintain 90 deg angular separation | Coordinated between drones |
 
-`python
+```python
 class PIDController:
     """
     Discrete PID controller with:
@@ -173,7 +173,7 @@ class PIDController:
         self._integral += error * dt  # clamped
         d_term = self.kd * filtered_derivative
         return clamp(p_term + i_term + d_term)
-`
+```
 
 ---
 
@@ -182,10 +182,10 @@ class PIDController:
 A PPO agent trained with **Stable-Baselines3** manages inter-drone separation. It operates **only** when the PID tracker would cause the drones to collide — the RL agent's sole responsibility is safety.
 
 ### Observation Space (12D)
-`
+```
 [dx, dy, inter_distance, d1_to_target, d2_to_target, angular_separation,
  vx_drone1, vy_drone1, vx_drone2, vy_drone2, phase_indicator, closing_speed]
-`
+```
 
 ### Action Space (Discrete, 7 actions)
 <p align="center">
@@ -231,7 +231,7 @@ The simulation runs on **Gazebo Garden** with a realistic outdoor terrain (Bayla
 ### Launch Procedure
 The entire simulation is orchestrated via a single bash script that spawns **13 terminal sessions**:
 
-`
+```
  1.  XRCE-DDS Agent            7.  Depth Bridge Drone 2
  2.  QGroundControl             8.  Dynamic Pose Bridge
  3.  PX4 Drone 1               9.  WebSocket Client -> Jetson
@@ -239,7 +239,7 @@ The entire simulation is orchestrated via a single bash script that spawns **13 
  5.  RGB Bridge Drone 1       11.  CollabTracker Drone 1
  6.  RGB Bridge Drone 2       12.  CollabTracker Drone 2
                                13.  Depth Bridge Drone 1
-`
+```
 
 <p align="center">
   <img src="docs/images/system_launch.png" alt="System Launch" width="800"/>
@@ -265,10 +265,10 @@ The **HITL architecture** offloads computationally expensive AI inference to an 
 | WebSocket | Network | Bidirectional communication |
 
 ### Communication Protocol
-`
+```
 PC -> Jetson:  Camera frames (JPEG compressed) + Odometry data
 Jetson -> PC:  Detection results + RL separation commands (vx_s, vy_s)
-`
+```
 
 ---
 
@@ -300,7 +300,7 @@ Jetson -> PC:  Detection results + RL separation commands (vx_s, vy_s)
 
 ## Project Structure
 
-`
+```
 drone-collaborative-tracking/
 ├── README.md
 ├── LICENSE
@@ -309,7 +309,7 @@ drone-collaborative-tracking/
 │   └── diagrams/            # Architecture & flow diagrams
 └── examples/
     └── pid_controller.py    # Example: PID controller implementation
-`
+```
 
 > **Note:** The full source code, trained models, and simulation configurations are kept private. This repository showcases the architecture, methodology, and results of the project. For inquiries about the implementation, please reach out.
 
@@ -328,4 +328,4 @@ drone-collaborative-tracking/
 
 This project is for **academic and demonstration purposes only**. The architecture design, trained models, and proprietary algorithms remain the intellectual property of the author.
 
- 2026 Eya Badri — All Rights Reserved
+© 2026 Eya Badri — All Rights Reserved
