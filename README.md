@@ -51,7 +51,7 @@ The architecture follows a **Hardware-in-the-Loop (HITL)** paradigm, with heavy 
 | **Hybrid AI + Control** | PID handles tracking; PPO RL handles inter-drone safety |
 | **HITL Architecture** | Jetson Nano runs inference, PC runs control — connected via WebSocket |
 | **Kalman Filtering** | Robust target prediction during occlusion and detection loss |
-| **State Machine** | Fully autonomous state transitions (Idle - Hover - Search - Track - Safety) |
+| **State Machine** | Autonomous state transitions (takeoff, search, tracking, target lost, collision avoidance) |
 
 ---
 
@@ -66,7 +66,7 @@ The system is composed of modular ROS2 nodes communicating through a well-define
 ```
 HOST PC (Ubuntu 22.04)
 
-  PX4 SITL Drone 1  <-->  PX4 SITL Drone 2  <-->  Gazebo Garden
+  PX4 SITL Drone 1  <-->  PX4 SITL Drone 2  <-->  Gazebo Harmonic
          |                        |
   PID Tracker D1           PID Tracker D2    <-- collab_tracker_pid.py
          |                        |
@@ -100,11 +100,11 @@ HOST PC (Ubuntu 22.04)
 - Custom Gymnasium environment modeling the dual-drone interaction space
 - 12-dimensional observation vector (relative positions, velocities, angles)
 - 7 discrete actions (tangential/radial adjustments per drone)
-- Trained for 3M steps with 8 parallel environments
+- Trained for 3M steps with 8 parallel environments (27.8 min on CPU)
 
 ### Orchestration
-- Fully autonomous **state machine** with 6 states
-- Automatic takeoff, hover, search, track, and safety separation
+- Autonomous **state machine**: takeoff, search, tracking, target lost, collision avoidance
+- Automatic fallback to rule-based separation if the RL model or the Jetson is unavailable
 - WebSocket-based HITL communication (PC <-> Jetson)
 
 ---
@@ -115,7 +115,7 @@ HOST PC (Ubuntu 22.04)
 |----------|------------|
 | **Middleware** | ROS2 Humble |
 | **Flight Controller** | PX4 Autopilot (SITL) |
-| **Simulator** | Gazebo Garden |
+| **Simulator** | Gazebo Harmonic |
 | **Detection** | YOLOv8n (Ultralytics) + ONNX Runtime |
 | **State Estimation** | Custom Kalman Filter |
 | **Control** | Multi-axis PID with anti-windup |
@@ -184,7 +184,7 @@ A PPO agent trained with **Stable-Baselines3** manages inter-drone separation. I
 ### Observation Space (12D)
 ```
 [dx, dy, inter_distance, d1_to_target, d2_to_target, angular_separation,
- vx_drone1, vy_drone1, vx_drone2, vy_drone2, phase_indicator, closing_speed]
+ vx_drone1, vy_drone1, vx_drone2, vy_drone2, normalized_step_count, closing_speed]
 ```
 
 ### Action Space (Discrete, 7 actions)
@@ -215,7 +215,7 @@ A PPO agent trained with **Stable-Baselines3** manages inter-drone separation. I
 
 ## Simulation Environment
 
-The simulation runs on **Gazebo Garden** with a realistic outdoor terrain (Baylands) and a walking human actor:
+The simulation runs on **Gazebo Harmonic** with a realistic outdoor terrain (Baylands) and a walking human actor:
 
 <p align="center">
   <img src="docs/images/gazebo_world.png" alt="Gazebo Simulation World" width="800"/>
@@ -288,13 +288,13 @@ Jetson -> PC:  Detection results + RL separation commands (vx_s, vy_s)
 
 | Metric | Value |
 |--------|-------|
-| Detection FPS (Jetson) | ~8-12 FPS |
-| Control Loop Rate | 20 Hz |
-| Target Distance Accuracy | 3.5m +/- 0.5m |
-| Collision Avoidance Rate | >95% (RL) vs ~70% (PID only) |
-| YOLO Inference (Jetson) | ~80ms |
-| PPO Inference (Jetson) | <5ms |
-| WebSocket Latency | ~15ms |
+| Control loop rate | 20 Hz (PC) |
+| Detection rate in HITL | ~5-10 Hz per drone (frames from both drones processed alternately) |
+| PPO evaluation (Gymnasium, 7 scenarios x 50 episodes) | Precision 100%, Recall 73%, F1 84.4% |
+| Gazebo comparison, 120 s each | Zero collisions for pure PID and for PID+RL |
+| Jetson Nano load (10-min HITL session) | RAM 56%, CPU 31.8% average, 5.1 W |
+
+The pure PID remains the preferred approach for operation, given its interpretability and ease of tuning; the PID+RL integration shows that a learned block can replace the rule-based separation without changing the rest of the controller.
 
 ---
 
@@ -315,17 +315,16 @@ drone-collaborative-tracking/
 
 ---
 
-## Author
+## Authors
 
-**Eya Badri**
-- Engineering Student — ENIT, Universite de Tunis El Manar
-- eya.badri@etudiant-enit.utm.tn
-- [GitHub](https://github.com/eyabadri)
+**Eya Badri** and **Maram Turki**, Engineering Students — ENIT, Universite de Tunis El Manar
+- Supervisor: Dr. Faten Ben Abdallah
+- Contact: eya.badri@etudiant-enit.utm.tn — [GitHub](https://github.com/eyabadri)
 
 ---
 
 ## License
 
-This project is for **academic and demonstration purposes only**. The architecture design, trained models, and proprietary algorithms remain the intellectual property of the author.
+This project is for **academic and demonstration purposes only**. The architecture design, trained models, and proprietary algorithms remain the intellectual property of the authors.
 
-© 2026 Eya Badri — All Rights Reserved
+© 2026 Eya Badri and Maram Turki — All Rights Reserved
